@@ -24,8 +24,9 @@ library(here) #loading data
 library(ggplot2) #plotting data
 library(readxl) #importing excel files
 library(sf) #for spatial data
-library(rgdal) #read spatial data
 library(cowplot)
+library(rnaturalearth)
+library(ggspatial)
 
 ```
 
@@ -36,7 +37,7 @@ In order to have spatial shapes on our map, like our land masses, we need to fin
 
 ```{r basemap full, fig.width=4, fig.height=4}
 
-VI_baselayer <- readOGR(dsn = here::here("Data/CAN_adm", ""), stringsAsFactors = F)
+VI_baselayer <- read_sf(dsn = here::here("Data/CAN_adm", ""), stringsAsFactors = F)
 
 VI_baselayer_sf <- st_as_sf(VI_baselayer)
 
@@ -80,9 +81,8 @@ lat_max = max(SiteInfo$Lat) + 0.05
 long_min = min(SiteInfo$Long) - 0.05
 long_max = max(SiteInfo$Long) + 0.05
 
-ggplot(VI_baselayer_sf) +
-geom_polygon(data = VI_baselayer, 
-          aes(x = long, y = lat, group = group)) +
+ggplot() +
+  geom_sf(data = VI_baselayer_sf) +
   coord_sf(xlim = c(long_min, long_max),
            ylim = c(lat_min, lat_max)) +
   geom_point(data = SiteInfo, mapping = aes(x = Long, y = Lat), color = "red") 
@@ -106,10 +106,8 @@ theme.dgm.map <- function (){
     legend.title = element_text(size = 14, face = "bold")) 
 }
 
-(basemap <- ggplot(VI_baselayer_sf) +
-geom_polygon(data = VI_baselayer, 
-          aes(x = long, y = lat, group = group), 
-          color = "darkgrey", fill = "lightgrey") +
+(basemap <- ggplot() +
+    geom_sf(data = VI_baselayer_sf, color = "darkgrey", fill = "lightgrey") +
   coord_sf(xlim = c(long_min, long_max),
            ylim = c(lat_min, lat_max)) +
   geom_point(data = SiteInfo, mapping = aes(x = Long, y = Lat, color = Temp),
@@ -120,7 +118,15 @@ geom_polygon(data = VI_baselayer,
   labs(x = " \nLongitude", y = "Latitude\n ", color = "Temperature\n(°C)") +
   theme.dgm.map() +
   scale_x_continuous(breaks = c(-125.4, -125.3, -125.2, -125.1)) +
-  scale_y_continuous(breaks = c(48.8, 48.85, 48.9)))
+  scale_y_continuous(breaks = c(48.8, 48.85, 48.9))+
+  annotation_north_arrow(
+    location = "tr",
+    which_north = "true",
+    style = north_arrow_fancy_orienteering
+  ) +
+  annotation_scale(location = "br")+
+  geom_label(data = SiteInfo, 
+             mapping = aes(x = -125.134813, y = 48.834945, label = "BMSC")))
 
 ```
 
@@ -129,7 +135,7 @@ But what if you wanted an inset, because without knowing where Bamfield is, thes
 
 ```{r inset, fig.width=4, fig.height=4}
 
-(VI_Inset <- ggplot(data = VI_baselayer_sf) +
+(VI_Inset <- ggplot(VI_baselayer_sf) +
   geom_sf() +
   coord_sf(ylim = c(48, 52), xlim = c(-129, -122)) +
   theme.dgm.map() +
